@@ -1,4 +1,10 @@
-require('dotenv').config();
+// 只在本地开发时加载 .env，Render 上直接用环境变量
+try {
+  require('dotenv').config();
+} catch (e) {
+  // dotenv 不存在时忽略（生产环境用 Render env vars）
+}
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
