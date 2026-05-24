@@ -38,8 +38,8 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// SPA fallback (所有非 API 路由返回 index.html)
-app.get('/{*splat}', (req, res) => {
+// SPA fallback - 放在所有 API 路由之后
+app.use((req, res) => {
   if (!req.path.startsWith('/api')) {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   } else {
@@ -55,6 +55,10 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`SkillHub 运行在 http://localhost:${PORT}`);
+  console.log(`Supabase URL: ${process.env.SUPABASE_URL ? 'configured' : 'MISSING'}`);
+  console.log(`Supabase Key: ${process.env.SUPABASE_ANON_KEY ? 'configured' : 'MISSING'}`);
+  console.log(`PORT env: ${process.env.PORT}`);
+  console.log(`Routes: /api/health, /api/skills, /api/reviews, /api/developers, /api/stats`);
 });
 
 module.exports = app;

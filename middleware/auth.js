@@ -56,7 +56,7 @@ async function auth(req, res, next) {
       let { data: dev } = await supabase
         .from('developers')
         .select('id, name')
-        .eq('key_hash', keyHash)
+        .eq('agent_world_key', keyHash)
         .single();
 
       if (!dev) {
@@ -65,7 +65,7 @@ async function auth(req, res, next) {
         const { data: newDev, error: createErr } = await supabase
           .from('developers')
           .insert({
-            key_hash: keyHash,
+            agent_world_key: keyHash,
             name: `Dev_${shortId}`
           })
           .select('id, name')

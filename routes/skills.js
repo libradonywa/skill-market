@@ -31,7 +31,7 @@ router.get('/', async (req, res) => {
     let query = req.supabase
       .from('skills')
       .select('*, developers(name, avatar_url)', { count: 'exact' })
-      .eq('status', 'published');
+      .eq('status', 'active');
 
     if (category && category !== 'all') {
       query = query.eq('category', category);
@@ -43,7 +43,7 @@ router.get('/', async (req, res) => {
 
     switch (sort) {
       case 'downloads': query = query.order('download_count', { ascending: false }); break;
-      case 'rating': query = query.order('rating_avg', { ascending: false }); break;
+      case 'rating': query = query.order('avg_rating', { ascending: false }); break;
       case 'oldest': query = query.order('created_at', { ascending: true }); break;
       case 'latest':
       default: query = query.order('created_at', { ascending: false }); break;
@@ -135,7 +135,7 @@ router.post('/', auth, upload.fields([
       version: version || '1.0.0',
       category: category || 'other',
       tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map(t => t.trim())) : [],
-      status: 'published',
+      status: 'active',
       skill_json: skill_json || '{}',
       zip_url: zipUrl,
       zip_size: req.files?.zip?.[0]?.size || 0
