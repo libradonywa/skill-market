@@ -9,5 +9,5 @@ services:
         sync: false
       - key: SUPABASE_ANON_KEY
         sync: false
-      - key: PORT
-        value: "3000"
+      - key: NODE_VERSION
+        value: "22.x"
