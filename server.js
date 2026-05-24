@@ -1,28 +1,37 @@
 const express = require('express');
 const cors = require('cors');
-const { createClient } = require('@supabase/supabase-js');
-
-// 尝试加载 .env
-try { require('dotenv').config(); } catch (e) { /* dotenv not found */ }
-
+const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-console.log('=== SkillHub Starting ===');
-console.log('PORT env:', process.env.PORT);
-console.log('PORT used:', PORT);
-console.log('SUPABASE_URL set:', !!process.env.SUPABASE_URL);
-console.log('SUPABASE_ANON_KEY set:', !!process.env.SUPABASE_ANON_KEY);
+// 全局错误捕获
+process.on('uncaughtException', (err) => console.error('UNCAUGHT:', err.message, err.stack));
+process.on('unhandledRejection', (reason) => console.error('UNHANDLED REJECTION:', reason));
 
-// Supabase client
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
-const supabase = (supabaseUrl && supabaseKey)
-  ? createClient(supabaseUrl, supabaseKey)
-  : null;
+// 尝试加载 .env (本地开发)
+try { require('dotenv').config(); } catch (e) {}
 
-if (!supabase) {
-  console.warn('WARNING: Supabase not configured! API routes will fail.');
+console.log('=== SkillHub v2 — Starting ===');
+console.log('PORT:', PORT);
+console.log('Node:', process.version);
+console.log('CWD:', process.cwd());
+console.log('SUPABASE_URL:', !!process.env.SUPABASE_URL);
+console.log('SUPABASE_ANON_KEY:', !!process.env.SUPABASE_ANON_KEY);
+
+// Supabase (延迟初始化，不阻塞启动)
+let supabase = null;
+function getSupabase() {
+  if (supabase) return supabase;
+  try {
+    const { createClient } = require('@supabase/supabase-js');
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
+      supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+      console.log('Supabase connected');
+    }
+  } catch (e) {
+    console.error('Supabase init failed:', e.message);
+  }
+  return supabase;
 }
 
 // 中间件
@@ -30,38 +39,66 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 注入 Supabase 到 request
+// 注入 Supabase
 app.use((req, res, next) => {
-  req.supabase = supabase;
+  req.supabase = getSupabase();
   next();
 });
 
-// 健康检查 (放在 static 之前)
+// ====== 健康检查 ======
 app.get('/ping', (req, res) => {
-  res.json({ pong: true, supabase: !!supabase });
+  res.json({ pong: true, node: process.version, uptime: process.uptime() });
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', supabase: !!supabase, timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    port: PORT,
+    node: process.version,
+    supabase: !!req.supabase,
+    timestamp: new Date().toISOString()
+  });
 });
 
-// API 路由
-app.use('/api/skills', require('./routes/skills'));
-app.use('/api/reviews', require('./routes/reviews'));
-app.use('/api/developers', require('./routes/developers'));
-app.use('/api/stats', require('./routes/stats'));
+// ====== API 路由 ======
+try {
+  app.use('/api/skills', require('./routes/skills'));
+  console.log('Route /api/skills mounted');
+} catch (e) { console.error('FAIL skills route:', e.message); }
 
-// 静态文件 (SPA)
-app.use(express.static('public'));
+try {
+  app.use('/api/reviews', require('./routes/reviews'));
+  console.log('Route /api/reviews mounted');
+} catch (e) { console.error('FAIL reviews route:', e.message); }
 
-// SPA fallback: 所有非 API 请求返回 index.html
+try {
+  app.use('/api/developers', require('./routes/developers'));
+  console.log('Route /api/developers mounted');
+} catch (e) { console.error('FAIL developers route:', e.message); }
+
+try {
+  app.use('/api/stats', require('./routes/stats'));
+  console.log('Route /api/stats mounted');
+} catch (e) { console.error('FAIL stats route:', e.message); }
+
+// ====== 静态文件 ======
+app.use(express.static(path.join(__dirname, 'public')));
+
+// SPA fallback
 app.get('/{*splat}', (req, res) => {
   if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ error: 'API route not found', path: req.path });
+    return res.status(404).json({ error: 'Unknown API route' });
   }
-  res.sendFile('index.html', { root: './public' });
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`SkillHub running on port ${PORT}`);
+// 启动
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`SkillHub listening on 0.0.0.0:${PORT}`);
+});
+
+// 优雅关闭
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down...');
+  server.close(() => process.exit(0));
 });
