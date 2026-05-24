@@ -27,11 +27,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// 路由
-app.use('/api/skills', require('./routes/skills'));
-app.use('/api/reviews', require('./routes/reviews'));
-app.use('/api/developers', require('./routes/developers'));
-app.use('/api/stats', require('./routes/stats'));
+// 测试路由
+app.get('/ping', (req, res) => {
+  res.json({ pong: true, env: !!process.env.SUPABASE_URL });
+});
+
+// 路由 (包裹 try-catch 防止 require 崩溃)
+try { app.use('/api/skills', require('./routes/skills')); } catch(e) { console.error('skills route failed:', e.message); }
+try { app.use('/api/reviews', require('./routes/reviews')); } catch(e) { console.error('reviews route failed:', e.message); }
+try { app.use('/api/developers', require('./routes/developers')); } catch(e) { console.error('developers route failed:', e.message); }
+try { app.use('/api/stats', require('./routes/stats')); } catch(e) { console.error('stats route failed:', e.message); }
 
 // 健康检查
 app.get('/api/health', (req, res) => {
