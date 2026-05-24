@@ -7,7 +7,7 @@ router.get('/:id', async (req, res) => {
   try {
     const { data, error } = await req.supabase
       .from('developers')
-      .select('id, name, bio, avatar_url, skills_count, total_downloads, joined_at')
+      .select('id, name, bio, avatar_url, skill_count, total_downloads, created_at')
       .eq('id', req.params.id)
       .single();
 
@@ -19,9 +19,9 @@ router.get('/:id', async (req, res) => {
     // 同时获取该开发者的技能列表
     const { data: skills } = await req.supabase
       .from('skills')
-      .select('id, name, description, version, category, download_count, rating_avg, rating_count, created_at')
+      .select('id, name, description, version, category, download_count, avg_rating, review_count, created_at')
       .eq('developer_id', req.params.id)
-      .eq('status', 'published')
+      .eq('status', 'active')
       .order('download_count', { ascending: false });
 
     res.json({ ...data, skills: skills || [] });
@@ -83,7 +83,7 @@ router.get('/top/list', async (req, res) => {
 
     const { data, error } = await req.supabase
       .from('developers')
-      .select('id, name, avatar_url, skills_count, total_downloads')
+      .select('id, name, avatar_url, skill_count, total_downloads')
       .order('total_downloads', { ascending: false })
       .limit(parseInt(limit));
 

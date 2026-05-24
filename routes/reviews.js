@@ -22,7 +22,7 @@ router.get('/skill/:skillId', async (req, res) => {
 // 提交评测
 router.post('/', auth, async (req, res) => {
   try {
-    const { skill_id, rating, comment, tags } = req.body;
+    const { skill_id, rating, title, comment, tags } = req.body;
 
     if (!skill_id || !rating) {
       return res.status(400).json({ error: 'skill_id 和 rating 为必填项' });
@@ -53,7 +53,8 @@ router.post('/', auth, async (req, res) => {
         skill_id,
         developer_id: req.developerId,
         rating: parseInt(rating),
-        comment: comment || '',
+        title: title || '',
+        content: comment || '',
         tags: tags || []
       }, { onConflict: 'skill_id, developer_id' })
       .select('*, developers(name, avatar_url)')

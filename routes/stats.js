@@ -5,7 +5,7 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const [skillsResult, devsResult, reviewsResult, downloadsResult] = await Promise.all([
-      req.supabase.from('skills').select('id', { count: 'exact', head: true }).eq('status', 'published'),
+      req.supabase.from('skills').select('id', { count: 'exact', head: true }).eq('status', 'active'),
       req.supabase.from('developers').select('id', { count: 'exact', head: true }),
       req.supabase.from('reviews').select('id', { count: 'exact', head: true }),
       req.supabase.from('downloads').select('id', { count: 'exact', head: true })
@@ -28,7 +28,7 @@ router.get('/categories', async (req, res) => {
     const { data, error } = await req.supabase
       .from('skills')
       .select('category')
-      .eq('status', 'published');
+      .eq('status', 'active');
 
     if (error) throw error;
 
